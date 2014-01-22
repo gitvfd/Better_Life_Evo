@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+    <script src="http://d3js.org/d3.v3.js"></script>      
+		<style>
+      .body {
+        font: 12px sans-serif;
+        }
+
+        .bar text {
+          fill: white;
+        }
+
+        .axis path, .axis line {
+          fill: none;
+          stroke: white;
+          shape-rendering: crispEdges;
+        }
+
+        .axis text {stroke: rgb(228,98,48); 
+        font: 12px sans-serif;
+        }
+        
+        
+        .grid .tick {
+        	stroke: lightgrey;
+        	opacity: 0.4;
+        }
+        
+        .grid path {
+        	stroke-width: 0;
+        }
+        
+
+		</style>
+	</head>
+	<body>
+    <div class="span12">
+      <form>
+        <label><input style="margin-left:20px;"type="radio" name="dataset" id="2012" > 2012</label>
+        <label><input type="radio" name="dataset" id="2013" checked> 2013</label>
+      </form>
+      </p>
+      <input  style="margin-left:20px;" type="button" class="btn" id="Sort" value=" SORT "/>
+    </p>
+    <script>
+
+      var margin = {top: 0, right: 10, bottom: 20, left: 10},
+        width = 350 - margin.left - margin.right,
+        height = 500- margin.top - margin.bottom;
+      
+      var svg = d3.select("body").append("svg")
+        .attr("class","chart")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+        color = d3.scale.linear().range(["yellow","rgb(228,98,48)"]);
+
+      d3.json("data/data_2013.json", function(error,data){
+        var min = d3.min(data.map(function(d) {return d.Average;} ));
+        var max = d3.max(data.map(function(d) {return d.Average;} ));
+
+        color.domain([min,max]);
+
+        var x = d3.scale.linear()
+          .domain([0, max])
+          .range([0, width]);
+		
+		    var index= data.map(function(d) {return d.Country;});
+		
+        var y = d3.scale.ordinal()
+          .domain(index)
+          .rangeRoundBands([0, height], .1);
+        
+        var data=data.map(function(d) {
+              return {
+                Country: d.Country,
+                Average: d.Average,
+                Color: color(d.Average)
+              }
+            });
+
+        var bar = svg.selectAll(".bar")
+          .data(data)
+          .enter().append("g")
+          .attr("class", "bar")
+          .attr("transform", function(d, i) { return "translate(0," + y(i) + ")"; });
+
+        var yValue = data.map(function(d,i){return y(i)});
+        console.log(yValue);
+
+        bar.append("rect")
+          .attr("height", y.rangeBand())
+          .attr("width",  function(d) { return x(d.Average); })
+          .style("fill",function(d) { return d.Color; });
+        
+        bar.append("text")
+          .attr("text-anchor", "end")
+          .attr("x", function(d) { return x(d.Average) - 6; })
+          .attr("y", y.rangeBand() / 2)
+          .attr("dy", ".35em")
+          .text(function(d, i) { return d.Country; });
+
+        svg.selectAll("rect").append("title")
+              .text(function(d){return  d.Country ;});
+        
+        svg.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.svg.axis()
+          .scale(x)
+          .ticks(8)
+          .tickSize(-height, 0,0)
+          .orient("bottom")); 
+          
+        //setInterval(
+          d3.selectAll("input")
+          .on("click", function sortData(){
+            data.sort(function(a, b) { return b.Average - a.Average; });
+
+            var orderCountry= data.map(function(d,i){return d.Country});
+          
+            y.domain(orderCountry);
+
+            bar.transition()
+            .duration(1000)
+            .delay(function(d, i) { return i * 100; })
+            .attr("transform", function(d, i) { return "translate(0," + y(d.Country)  + ")"; }); 
+          });
+          //,3000)
+        
+          d3.selectAll("input")
+              .on("change", function switchData(){
+                if(document.getElementById('2012').checked) {
+                  d3.json("data/data_2012.json", function(error,data){
+                    var min = d3.min(data.map(function(d) {return d.Average;} ));
+                    var max = d3.max(data.map(function(d) {return d.Average;} ));
+
+                    color.domain([min,max]);
+                    
+                    var data=data.map(function(d) {
+                      return {
+                        Country: d.Country,
+                        Average: d.Average,
+                        Color: color(d.Average)
+                      }
+                    });
+
+
+                    svg.selectAll("rect")
+                      .data(data)
+                      .transition()
+                      .duration(500)
+                      .delay(function(d, i) { return i * 50; })
+                      .attr("width",  function(d) { return x(d.Average); })
+                      .style("fill",function(d) { return d.Color; });
+
+
+                    svg.selectAll("text") 
+                      .data(data)
+                      .transition()
+                      .duration(500)                  
+                      .attr("text-anchor", "end")
+                      .attr("x", function(d) { return x(d.Average) - 6; })
+                      .attr("y", y.rangeBand() / 2)
+                      .attr("dy", ".35em")
+                      .text(function(d, i) { return d.Country; });
+                  
+                    
+                    svg.selectAll("rect").append("title")
+                      .text(function(d){return  d.Country ;});
+                          
+                    d3.selectAll("input")
+                      .on("click", function sortData(){
+                        data.sort(function(a, b) { return b.Average - a.Average; });
+
+                        var orderCountry= data.map(function(d,i){return d.Country});
+
+                        y.domain(orderCountry);
+
+                        bar.transition()
+                        .duration(1000)
+                        .delay(function(d, i) { return i * 100; })
+                        .attr("transform", function(d, i) { return "translate(0," + y(d.Country)  + ")"; });
+          
+                        
+
+                      });
+                });
+                } else if (document.getElementById('2013').checked) {
+                  d3.json("data/data_2013.json", function(error,data){
+                    var min = d3.min(data.map(function(d) {return d.Average;} ));
+                    var max = d3.max(data.map(function(d) {return d.Average;} ));
+
+                    color.domain([min,max]);
+
+                    var data=data.map(function(d) {
+                      return {
+                        Country: d.Country,
+                        Average: d.Average,
+                        Color: color(d.Average)
+                      }
+                    });
+
+                    svg.selectAll("rect")
+                      .data(data)
+                      .transition()
+                      .duration(500)
+                      .delay(function(d, i) { return i * 50; })
+                      .attr("width",  function(d) { return x(d.Average); })
+                      .style("fill",function(d) { return d.Color; });
+                    
+                    svg.selectAll("text") 
+                      .data(data)
+                      .transition()
+                      .duration(500)                  
+                      .attr("text-anchor", "end")
+                      .attr("x", function(d) { return x(d.Average) - 6; })
+                      .attr("y", y.rangeBand() / 2)
+                      .attr("dy", ".35em")
+                      .text(function(d, i) { return d.Country; });
+                 
+                    svg.selectAll("rect").append("title")
+                      .text(function(d){return  d.Country ;});
+                                           
+                    d3.selectAll("input")
+                      .on("click", function sortData(){
+                        data.sort(function(a, b) { return b.Average - a.Average; });
+
+                        var orderCountry= data.map(function(d,i){return d.Country});
+
+                        y.domain(orderCountry);
+
+                        bar.transition()
+                        .duration(1000)
+                        .delay(function(d, i) { return i * 100; })
+                        .attr("transform", function(d, i) { return "translate(0," + y(d.Country)  + ")"; });
+                    });
+                  });
+                }
+              });        
+      });
+    </script>
+    </div>
+  </body>
+</html>  
